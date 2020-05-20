@@ -1,0 +1,19 @@
+--------------
+-- Accounts --
+--------------
+
+gmail = IMAP {
+  server = "imap.gmail.com",
+  ssl = "tls1.2",
+  username = "foo@gmail.com",
+  password = "bar"
+}
+
+other_account = IMAP {
+  server = "imap.foo.bar",
+  ssl = "tls1.2",
+  username = "foo"
+  password = "bar"
+}
+
+accounts = { gmail, other_account }

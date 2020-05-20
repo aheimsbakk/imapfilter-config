@@ -1,0 +1,14 @@
+-------------
+-- Filters --
+-------------
+
+-- mailing_lists
+list_addresses = {
+  -- centos
+    "centos-announce@centos.org",
+}
+
+-- if from address then move to folder
+from_folder = {
+  ["@accounts.google.com"] = "misc/google-accounts",
+}
