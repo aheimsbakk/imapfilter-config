@@ -1,5 +1,7 @@
 # imapfilter
 
+Configuration for [`imapfilter`](https://github.com/lefcha/imapfilter). Configuration is written in [Lua](https://www.lua.org/).
+
 * `config.lua` --- main `imapfilter` config.
 * `accounts.lua` --- split out account settings, use `accounts.lua.template` as base.
 * `filters.lua` --- split out filters as lua tables, use `filters.lua.template` as base.
