@@ -23,9 +23,9 @@ function filter_lists(account, address)
             account.INBOX:contain_to(address)
 
   -- Put mailing list in lists/ folder named mailing list address
-  -- e.g. 'lists/ubuntu-announce'
-  list = string.gmatch(address, '[%w%-%.]+')
-  results:move_messages(account['lists/' .. list()])
+  -- e.g. 'lists|ubuntu-announce'
+  list = string.gmatch(address, '[%w%-]+')
+  results:move_messages(account['lists|' .. list()])
 end
 
 -- Filter anoying news letters, this filters English and Norwegian.
@@ -34,7 +34,7 @@ function filter_newsletter(account)
   results = account.INBOX:match_from("(newsletter|nyhetsbrev)") +
             account.INBOX:match_subject("[Nn](ews[ ]?letter|yhetsbrev)") +
             account.INBOX:match_body("[Nn](ews[ ]?letter|yhetsbrev)")
-  results:move_messages(account['misc/newsletter'])
+  results:move_messages(account['misc|newsletter'])
 end
 
 -- Normal filters on from address
