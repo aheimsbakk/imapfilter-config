@@ -57,9 +57,9 @@ for _, account in pairs(accounts) do
     filter_lists(account, address)
   end
 
-  filter_newsletter(account)
-
   for address, folder in pairs(from_to_cc_folder) do
     filter_from(account, address, folder)
   end
+
+  filter_newsletter(account)
 end
