@@ -36,8 +36,16 @@ function filter_newsletter(account)
             account.INBOX:contain_subject("newsletter") +
             account.INBOX:contain_subject("nyhetsbrev") +
             account.INBOX:contain_body("newsletter") +
-            account.INBOX:contain_body("nyhetsbrev") 
+            account.INBOX:contain_body("nyhetsbrev")
   results:move_messages(account['misc|newsletter'])
+end
+
+-- Filter anoying webinars.
+function filter_webinar(account)
+  results = account.INBOX:contain_from("webinar") +
+            account.INBOX:contain_subject("webinar") +
+            account.INBOX:contain_body("webinar")
+  results:move_messages(account['misc|webinar'])
 end
 
 -- Normal filters on from address
@@ -61,5 +69,6 @@ for _, account in pairs(accounts) do
     filter_from(account, address, folder)
   end
 
+  filter_webinar(account)
   filter_newsletter(account)
 end
