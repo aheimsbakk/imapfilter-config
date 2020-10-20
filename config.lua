@@ -31,15 +31,20 @@ end
 -- Filter anoying news letters, this filters English and Norwegian.
 -- Modify for your own language.
 function filter_newsletter(account)
-  results = account.INBOX:match_from("(newsletter|nyhetsbrev)") +
-            account.INBOX:match_subject("[Nn](ews[ ]?letter|yhetsbrev)") +
-            account.INBOX:match_body("[Nn](ews[ ]?letter|yhetsbrev)")
+  results = account.INBOX:contain_from("newsletter") +
+            account.INBOX:contain_from("nyhetsbrev") +
+            account.INBOX:contain_subject("newsletter") +
+            account.INBOX:contain_subject("nyhetsbrev") +
+            account.INBOX:contain_body("newsletter") +
+            account.INBOX:contain_body("nyhetsbrev") 
   results:move_messages(account['misc|newsletter'])
 end
 
 -- Normal filters on from address
-function filter_from(account, from, folder)
-  results = account.INBOX:contain_from(from)
+function filter_from(account, address, folder)
+  results = account.INBOX:contain_from(address) +
+            account.INBOX:contain_cc(address) +
+            account.INBOX:contain_to(address)
   results:move_messages(account[folder])
 end
 
@@ -54,7 +59,7 @@ for _, account in pairs(accounts) do
 
   filter_newsletter(account)
 
-  for from, folder in pairs(from_folder) do
-    filter_from(account, from, folder)
+  for address, folder in pairs(from_to_cc_folder) do
+    filter_from(account, address, folder)
   end
 end
