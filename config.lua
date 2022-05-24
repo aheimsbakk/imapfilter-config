@@ -23,9 +23,9 @@ function filter_lists(account, address)
             account.INBOX:contain_to(address)
 
   -- Put mailing list in lists/ folder named mailing list address
-  -- e.g. 'lists|ubuntu-announce'
+  -- e.g. 'lists-ubuntu-announce'
   list = string.gmatch(address, '[%w%-]+')
-  results:move_messages(account['lists|' .. list()])
+  results:move_messages(account['lists-' .. list()])
 end
 
 -- Filter anoying news letters, this filters English and Norwegian.
@@ -37,7 +37,7 @@ function filter_newsletter(account)
             account.INBOX:contain_subject("nyhetsbrev") +
             account.INBOX:contain_body("newsletter") +
             account.INBOX:contain_body("nyhetsbrev")
-  results:move_messages(account['misc|newsletter'])
+  results:move_messages(account['misc-newsletter'])
 end
 
 -- Filter anoying webinars.
@@ -45,7 +45,7 @@ function filter_webinar(account)
   results = account.INBOX:contain_from("webinar") +
             account.INBOX:contain_subject("webinar") +
             account.INBOX:contain_body("webinar")
-  results:move_messages(account['misc|webinar'])
+  results:move_messages(account['misc-webinar'])
 end
 
 -- Normal filters on from address
