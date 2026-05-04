@@ -35,7 +35,7 @@ from_to_cc_folder = from_to_cc_folder or {}
 local function filter_dynamic_lists(account)
   -- Omgår serverbegrensninger ved å velge alle meldinger i innboksen
   local results = account.INBOX:select_all()
-
+  
   if #results == 0 then return end
 
   -- Henter HELE meldingshodet for alle meldinger for å forhindre tap av brettede linjer
@@ -52,13 +52,13 @@ local function filter_dynamic_lists(account)
       header = string.gsub(header, "\r?\n[ \t]+", " ")
 
       -- Legger til et innledende linjeskift for å garantere treff på starten av linjen.
-      -- Søker uavhengig av store/små bokstaver for header-navnet og ekstraherer verdi i vinkelparenteser.
-      local list_id = string.match("\n" .. header, "\n[Ll][Ii][Ss][Tt]%-[Ii][Dd]:.-<([^>]+)>")
+      -- [^\n]- sikrer at regex-motoren ikke leser forbi linjeskift under søk etter < >.
+      local list_id = string.match("\n" .. header, "\n[Ll][Ii][Ss][Tt]%-[Ii][Dd]:[^\n]-<([^>]+)>")
 
       if list_id then
         local is_valid = true
         local lower_list_id = string.lower(list_id)
-
+        
         -- Valideringsregler for å ekskludere uønsket syntaks
         if string.len(list_id) > 50 then is_valid = false end
         if string.match(list_id, "=") then is_valid = false end
@@ -72,7 +72,7 @@ local function filter_dynamic_lists(account)
           if not messages_by_folder[folder_name] then
             messages_by_folder[folder_name] = {}
           end
-
+          
           table.insert(messages_by_folder[folder_name], mesg)
         end
       end
