@@ -9,51 +9,77 @@ options.limit = 50
 -- Helper to find script path
 local function script_path()
   local str = debug.getinfo(2, "S").source:sub(2)
-  return str:match("(.*/)")
+  local path = str:match("(.*/)")
+  return path or "./"
 end
+
+-- Feilhåndtering for fillasting: Kjører kun dofile hvis filene eksisterer
+local function load_config(file)
+  local f = io.open(file, "r")
+  if f then
+    f:close()
+    dofile(file)
+  end
+end
+
+-- Last inn avhengigheter én gang for å unngå I/O-operasjoner i løkker
+local base_path = script_path()
+load_config(base_path .. 'accounts.lua')
+load_config(base_path .. 'filters.lua')
+
+-- Sikkerhetsmekanisme: Definerer tabeller som tomme dersom de mangler i konfigurasjonsfilene
+accounts = accounts or {}
+from_to_cc_folder = from_to_cc_folder or {}
 
 -- Filter mailing lists dynamically via RFC 2919 List-Id header
 local function filter_dynamic_lists(account)
-  -- Endret fra '.' til '<' for å garantere treff selv om ID-en står på linje 2
-  local results = account.INBOX:contain_field('List-Id', '<')
+  -- Omgår serverbegrensninger ved å velge alle meldinger i innboksen
+  local results = account.INBOX:select_all()
 
   if #results == 0 then return end
 
-  local headers = account.INBOX:fetch_header(results, 'List-Id')
+  -- Henter HELE meldingshodet for alle meldinger for å forhindre tap av brettede linjer
+  local headers = account.INBOX:fetch_header(results)
   local messages_by_folder = {}
 
   for _, mesg in ipairs(results) do
     local uid = mesg[2]
     local header = headers[uid] or headers[tostring(uid)] or ""
 
-    -- RFC 5322 unfolding: Erstatter linjeskift og påfølgende blanktegn med et enkelt mellomrom
-    header = string.gsub(header, "\r?\n%s+", " ")
+    if header ~= "" then
+      -- RFC 5322 unfolding: Fjerner linjeskift etterfulgt av blanktegn (mellomrom/tabulator) 
+      -- og erstatter med et enkelt mellomrom over hele header-blokken.
+      header = string.gsub(header, "\r?\n[ \t]+", " ")
 
-    local list_id = string.match(header, "<([^>]+)>")
+      -- Legger til et innledende linjeskift for å garantere treff på starten av linjen.
+      -- Søker uavhengig av store/små bokstaver for header-navnet og ekstraherer verdi i vinkelparenteser.
+      local list_id = string.match("\n" .. header, "\n[Ll][Ii][Ss][Tt]%-[Ii][Dd]:.-<([^>]+)>")
 
-    if list_id then
-      local is_valid = true
-      local lower_list_id = string.lower(list_id)
+      if list_id then
+        local is_valid = true
+        local lower_list_id = string.lower(list_id)
 
-      -- Valideringsregler for å ekskludere uønsket syntaks
-      if string.len(list_id) > 50 then is_valid = false end
-      if string.match(list_id, "=") then is_valid = false end
-      if string.match(lower_list_id, "srs") then is_valid = false end
-      if string.match(lower_list_id, "bounces") then is_valid = false end
+        -- Valideringsregler for å ekskludere uønsket syntaks
+        if string.len(list_id) > 50 then is_valid = false end
+        if string.match(list_id, "=") then is_valid = false end
+        if string.match(lower_list_id, "srs") then is_valid = false end
+        if string.match(lower_list_id, "bounces") then is_valid = false end
 
-      if is_valid then
-        local clean_name = string.gsub(list_id, "[%.@]", "-")
-        local folder_name = "lists-" .. clean_name
+        if is_valid then
+          local clean_name = string.gsub(list_id, "[%.@]", "-")
+          local folder_name = "lists-" .. clean_name
 
-        if not messages_by_folder[folder_name] then
-          messages_by_folder[folder_name] = {}
+          if not messages_by_folder[folder_name] then
+            messages_by_folder[folder_name] = {}
+          end
+
+          table.insert(messages_by_folder[folder_name], mesg)
         end
-
-        table.insert(messages_by_folder[folder_name], mesg)
       end
     end
   end
 
+  -- Utfører bulk-flytting per mappe
   for folder, msgs in pairs(messages_by_folder) do
     Set(msgs):move_messages(account[folder])
   end
@@ -91,7 +117,7 @@ for _, account in pairs(accounts) do
   -- Automatisk identifisering og ruting av mailinglister
   filter_dynamic_lists(account)
 
-  -- Prosesserer manuelle regler for avsendere
+  -- Prosesserer manuelle regler for avsendere (Ignoreres om tabellen er tom)
   for address, folder in pairs(from_to_cc_folder) do
     filter_from(account, address, folder)
   end
