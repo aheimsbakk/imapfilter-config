@@ -12,14 +12,10 @@ local function script_path()
   return str:match("(.*/)")
 end
 
--- Last inn avhengigheter én gang for å unngå I/O-operasjoner i løkker
-local base_path = script_path()
-dofile(base_path .. 'accounts.lua')
-dofile(base_path .. 'filters.lua')
-
 -- Filter mailing lists dynamically via RFC 2919 List-Id header
 local function filter_dynamic_lists(account)
-  local results = account.INBOX:contain_field('List-Id', '.')
+  -- Endret fra '.' til '<' for å garantere treff selv om ID-en står på linje 2
+  local results = account.INBOX:contain_field('List-Id', '<')
 
   if #results == 0 then return end
 
@@ -29,6 +25,9 @@ local function filter_dynamic_lists(account)
   for _, mesg in ipairs(results) do
     local uid = mesg[2]
     local header = headers[uid] or headers[tostring(uid)] or ""
+
+    -- RFC 5322 unfolding: Erstatter linjeskift og påfølgende blanktegn med et enkelt mellomrom
+    header = string.gsub(header, "\r?\n%s+", " ")
 
     local list_id = string.match(header, "<([^>]+)>")
 
