@@ -21,35 +21,40 @@ dofile(base_path .. 'filters.lua')
 local function filter_dynamic_lists(account)
   local results = account.INBOX:contain_field('List-Id', '.')
 
-  -- Returner umiddelbart hvis resultatsettet er tomt
   if #results == 0 then return end
 
-  -- Henter alle List-Id headere for resultatsettet i én operasjon
   local headers = account.INBOX:fetch_header(results, 'List-Id')
   local messages_by_folder = {}
 
   for _, mesg in ipairs(results) do
     local uid = mesg[2]
-    -- Henter header fra den forhåndslastede tabellen
     local header = headers[uid] or headers[tostring(uid)] or ""
 
-    -- Trekker ut verdien mellom vinkelparentesene
     local list_id = string.match(header, "<([^>]+)>")
 
     if list_id then
-      -- Bytter ut punktum og alfakrøll med bindestrek for sikre mappenavn
-      local clean_name = string.gsub(list_id, "[%.@]", "-")
-      local folder_name = "lists-" .. clean_name
+      local is_valid = true
+      local lower_list_id = string.lower(list_id)
 
-      if not messages_by_folder[folder_name] then
-        messages_by_folder[folder_name] = {}
+      -- Valideringsregler for å ekskludere uønsket syntaks
+      if string.len(list_id) > 50 then is_valid = false end
+      if string.match(list_id, "=") then is_valid = false end
+      if string.match(lower_list_id, "srs") then is_valid = false end
+      if string.match(lower_list_id, "bounces") then is_valid = false end
+
+      if is_valid then
+        local clean_name = string.gsub(list_id, "[%.@]", "-")
+        local folder_name = "lists-" .. clean_name
+
+        if not messages_by_folder[folder_name] then
+          messages_by_folder[folder_name] = {}
+        end
+
+        table.insert(messages_by_folder[folder_name], mesg)
       end
-
-      table.insert(messages_by_folder[folder_name], mesg)
     end
   end
 
-  -- Utfører bulk-flytting per mappe
   for folder, msgs in pairs(messages_by_folder) do
     Set(msgs):move_messages(account[folder])
   end
